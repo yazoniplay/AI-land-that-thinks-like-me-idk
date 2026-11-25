@@ -4,6 +4,8 @@ import { BookOpen, Brain, Check, ChevronDown, FileText, Globe, PenLine, Plus, Sp
 type Note={id:string,title:string,body:string};
 type Profile={likes:string[],avoid:string[],level:string};
 type Source={title:string,url:string};
+type ChatMessage={id:string,role:'user'|'assistant',content:string,sources?:Source[],createdAt:string};
+type ChatThread={id:string,title:string,messages:ChatMessage[],updatedAt:string};
 type LibraryItem={id:string,title:string,content:string,sources:Source[],createdAt:string};
 type ScheduleItem={id:string,title:string,instruction:string,when:string,repeat:'once'|'daily'|'weekly',completed?:boolean};
 type Plugin={id:string,name:string,description:string,prompt:string};
@@ -31,6 +33,8 @@ export default function App(){
  const [page,setPage]=useState<'create'|'notes'|'profile'|'library'|'scheduler'|'plugins'>('create');
  const [sidebarCollapsed,setSidebarCollapsed]=useState(false);
  const [task,setTask]=useState('');
+ const [chatHistory,setChatHistory]=useState<ChatThread[]>(()=>read('tlm-chat-history',[]));
+ const [activeChatId,setActiveChatId]=useState<string|null>(null);
  const [followup,setFollowup]=useState('');
  const [result,setResult]=useState('');
  const [sources,setSources]=useState<Source[]>([]);
@@ -49,13 +53,18 @@ export default function App(){
  const [noteTitle,setNoteTitle]=useState('');const [noteBody,setNoteBody]=useState('');
  const [research,setResearch]=useState(true);
  const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [message,setMessage]=useState('');const [phaseIndex,setPhaseIndex]=useState(0);const [elapsedSeconds,setElapsedSeconds]=useState(0);const workSteps=research?['Jag läser instruktionen och bryter ner uppgiften.','Jag går igenom dina valda anteckningar och skrivprofil.','Jag undersöker relevanta fakta och källor vid behov.','Jag skriver ihop hela arbetet och kontrollerar att det följer instruktionen.']:['Jag läser instruktionen och bryter ner uppgiften.','Jag går igenom dina valda anteckningar och skrivprofil.','Jag skriver ihop hela arbetet.','Jag gör en sista kontroll av texten.'];
- useEffect(()=>store('tlm-notes',notes),[notes]);useEffect(()=>store('tlm-profile',profile),[profile]);useEffect(()=>store('tlm-library',library),[library]);useEffect(()=>store('tlm-schedules',schedules),[schedules]);useEffect(()=>store('tlm-plugins',installedPlugins),[installedPlugins]);useEffect(()=>{if(!busy)return;const timer=window.setInterval(()=>setElapsedSeconds(s=>s+1),1000);return()=>window.clearInterval(timer)},[busy]);
+ useEffect(()=>store('tlm-chat-history',chatHistory),[chatHistory]);useEffect(()=>store('tlm-notes',notes),[notes]);useEffect(()=>store('tlm-profile',profile),[profile]);useEffect(()=>store('tlm-library',library),[library]);useEffect(()=>store('tlm-schedules',schedules),[schedules]);useEffect(()=>store('tlm-plugins',installedPlugins),[installedPlugins]);useEffect(()=>{if(!busy)return;const timer=window.setInterval(()=>setElapsedSeconds(s=>s+1),1000);return()=>window.clearInterval(timer)},[busy]);
  useEffect(()=>{if(busy||result)chatEndRef.current?.scrollIntoView({behavior:'smooth',block:'end'});},[busy,result]);
  const context=useMemo(()=>notes.filter(n=>selected.includes(n.id)).map(n=>n.title+': '+n.body).join('\n\n'),[notes,selected]);
  const profileContext='WRITING PROFILE: '+profile.level+'. Preferences: '+profile.likes.join(', ')+'. Avoid: '+profile.avoid.join(', ')+'.\nINSTALLED WORKSPACE PLUGINS: '+pluginCatalog.filter(p=>installedPlugins.includes(p.id)).map(p=>p.name+': '+p.prompt).join('\n');
  const run=async(instruction:string,continuing=false)=>{
-  if(!instruction.trim()||busy)return;setBusy(true);setPhaseIndex(0);setError('');setMessage('');setElapsedSeconds(0);if(!continuing){setResult('');setSources([]);setResearched(false);}
-  try{const answer=await createWithAI(instruction,[context,profileContext].filter(Boolean).join('\n\n'),continuing?result:'',research);setResult(answer.text);setSources(answer.sources);setResearched(answer.researched);setProvider(answer.provider);setPhaseIndex(workSteps.length-1);setFollowup('');}
+  if(!instruction.trim()||busy)return;
+  const chatId=continuing&&activeChatId?activeChatId:crypto.randomUUID();
+  const now=new Date().toISOString();
+  if(!(continuing&&activeChatId)){setActiveChatId(chatId);setChatHistory(items=>[{id:chatId,title:instruction.trim().slice(0,72)||'Ny uppgift',messages:[],updatedAt:now},...items]);}
+  setChatHistory(items=>items.map(chat=>chat.id===chatId?{...chat,title:chat.messages.length?chat.title:instruction.trim().slice(0,72)||'Ny uppgift',messages:[...chat.messages,{id:crypto.randomUUID(),role:'user',content:instruction,createdAt:now}],updatedAt:now}:chat));
+  setBusy(true);setPhaseIndex(0);setError('');setMessage('');setElapsedSeconds(0);if(!continuing){setResult('');setSources([]);setResearched(false);}
+  try{const answer=await createWithAI(instruction,[context,profileContext].filter(Boolean).join('\n\n'),continuing?result:'',research);setResult(answer.text);setSources(answer.sources);setResearched(answer.researched);setProvider(answer.provider);setPhaseIndex(workSteps.length-1);setFollowup('');setChatHistory(items=>items.map(chat=>chat.id===chatId?{...chat,messages:[...chat.messages,{id:crypto.randomUUID(),role:'assistant',content:answer.text,sources:answer.sources,createdAt:new Date().toISOString()}],updatedAt:new Date().toISOString()}:chat));}
   catch(e){const msg=e instanceof Error?e.message:'Något gick fel. Försök igen.';const providerFailure=msg.startsWith('AI providers did not finish successfully');const details=msg.replace('AI providers did not finish successfully. ','').split(' | ').slice(0,4).join(' · ');setError(providerFailure?'AI-leverantörerna gav fel: '+details:/AbortError|The AI request reached its maximum wait time|fetch failed/i.test(msg)?'AI:n nådde sin faktiska väntetid. Din instruktion finns kvar — försök igen.':msg);}
   finally{setBusy(false);}
  };
