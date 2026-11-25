@@ -57,14 +57,14 @@ export default function App(){
  useEffect(()=>{if(busy||result)chatEndRef.current?.scrollIntoView({behavior:'smooth',block:'end'});},[busy,result]);
  const activeThread=chatHistory.find(chat=>chat.id===activeChatId)||null;
  const context=useMemo(()=>notes.filter(n=>selected.includes(n.id)).map(n=>n.title+': '+n.body).join('\n\n'),[notes,selected]);
- const profileContext = String.raw`STRICT STUDENT VOICE — PERSONAL, NOT GENERIC:
+ const profileContext = String.raw\`STRICT STUDENT VOICE — PERSONAL, NOT GENERIC:
 Write as a real 13-year-old Åk 7 SVA2 student learning Swedish as a second language. Use simple everyday Swedish, basic grammar, familiar words, and direct sentences. Do not sound like an adult, teacher, textbook, formal essay, or polished AI. Do not stereotype the student's Syrian/Arabic background or imitate an accent.
 PERSONAL WORD BAN — HARD RULE:
 The student explicitly says these words are NOT words they use. Never use them in the student's generated voice unless the current task requires quoting or explaining that exact word:
 “förort”, “förorten”, “lugn”, “lugnt”, “både”, “snabbt”, “nyfiken”, “modig”, “hjälpsam”, “omtänksam”, “spännande”.
-Also avoid the exact phrases “en vanlig svensk förort”, “en lugn gata”, “både … och …”, “ropar snabbt”, “en nyfiken/modig/hjälpsam pojke”. Do not swap them for fancy synonyms. Say the idea in plain words or leave it out if it is unsupported.
+Also avoid “en vanlig svensk förort”, “en lugn gata”, “både … och …”, “ropar snabbt”, “en nyfiken/modig/hjälpsam pojke”. Do not swap them for fancy synonyms. Say the idea in plain words or leave it out if unsupported.
 NO MADE-UP PERSONAL DETAILS:
-Never invent childhood memories, likes, reasons, feelings, opinions, experiences, or what the student remembers. Do not write “Jag minns…”, “Jag tyckte om…”, “Jag valde den för att…”, or “min favorit…” unless the student actually supplied that information. If required personal information is missing, ask one short question or leave [skriv din egen anledning].
+Never invent childhood memories, likes, reasons, feelings, opinions, experiences, or what the student remembers. Do not write “Jag minns…”, “Jag tyckte om…”, “Jag valde den för att…”, or “min favorit…” unless the student supplied it. If required personal information is missing, ask one short question or leave [skriv din egen anledning].
 NO FILLER / AI TEMPLATE:
 Do not start with “Jag ska berätta om…” or “Jag har valt den här boken eftersom…”. Avoid “Karaktärerna är…”, “Miljön är…”, “Ett tema är…”, “Budskapet är…”, generic moral sentences, repetitive descriptions, and canned endings unless the current teacher instructions specifically require them. Include required school terms naturally, not as robotic headings.
 WORD LEVEL:
@@ -76,8 +76,7 @@ When the user supplies their own writing, treat it as the strongest voice sample
 TASK AND FACTS:
 Follow only the current assignment. Teacher instructions pasted by the user apply only to that assignment; do not carry old rubrics or required terms into new tasks. Never invent plot, character traits, setting, weather, events, opinions, or conclusions. Use supplied facts or verified research. Ask instead of making up missing personal information.
 FINAL CHECK:
-Silently scan the whole answer for banned words, invented first-person memories, invented traits, generic moral sentences, adult vocabulary, and template structure. Rewrite any sentence that fails. Return only the requested work, not an explanation of these rules.`;
- const profileContextFull = profileContext + '\nWRITING PROFILE: ' + profile.level + '. Preferences: ' + profile.likes.join(', ') + '. Avoid: ' + profile.avoid.join(', ') + '.\nINSTALLED WORKSPACE PLUGINS: ' + pluginCatalog.filter(p=>installedPlugins.includes(p.id)).map(p=>p.name+': '+p.prompt).join('\n');
+Silently scan the whole answer for banned words, invented first-person memories, invented traits, generic moral sentences, adult vocabulary, and template structure. Rewrite any sentence that fails. Return only the requested work, not an explanation of these rules.\` + '\\nWRITING PROFILE: ' + profile.level + '. Preferences: ' + profile.likes.join(', ') + '. Avoid: ' + profile.avoid.join(', ') + '.\\nINSTALLED WORKSPACE PLUGINS: ' + pluginCatalog.filter(p=>installedPlugins.includes(p.id)).map(p=>p.name+': '+p.prompt).join('\\n');
  const run=async(instruction:string,continuing=false)=>{
   if(!instruction.trim()||busy)return;
   const chatId=continuing&&activeChatId?activeChatId:crypto.randomUUID();
