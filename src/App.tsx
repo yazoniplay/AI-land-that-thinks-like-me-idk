@@ -10,7 +10,7 @@ const store=(key:string,value:unknown)=>localStorage.setItem(key,JSON.stringify(
 const URL='https://ihonwomrhvdgfmjjjtyr.supabase.co';
 const KEY='sb_publishable_gl2xI-N4Ea8hkJOkInwPsA_iw2RC-ja';
 async function createWithAI(task:string,notes:string,current:string,research:boolean){
- const response=await fetch(URL+'/functions/v1/writing-assistant',{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY},body:JSON.stringify({mode:'create',task,notes,draft:current,language:'Swedish (Svenska)',research}),signal:AbortSignal.timeout(145000)});
+ const response=await fetch(URL+'/functions/v1/writing-assistant',{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY},body:JSON.stringify({mode:'create',task,notes,draft:current,language:'Swedish (Svenska)',research}),signal:AbortSignal.timeout(360000)});
  const data=await response.json().catch(()=>({error:'AI:n skickade ett svar som inte gick att läsa.'}));
  if(!response.ok)throw new Error(data.error||'AI:n kunde inte skapa texten just nu.');
  if(typeof data.text!=='string'||!data.text.trim())throw new Error('AI:n returnerade ingen text.');
@@ -58,7 +58,7 @@ export default function App(){
      <div className="bot-message"><div className="message-avatar"><Bot size={16}/></div><div className="bubble assistant-bubble"><b>Hej! Vad ska jag hjälpa dig att få gjort?</b><p>Skriv bara uppgiften med dina egna ord. Jag kan skapa hela arbetet och söka fakta när det behövs.</p></div></div>
      {task.trim()&&<div className="bot-message user-message"><div className="bubble user-bubble"><span>Din uppgift</span><p>{task}</p></div></div>}
      {busy&&<div className="bot-message"><div className="message-avatar"><Bot size={16}/></div><div className="bubble assistant-bubble working-bubble"><div className="working-title"><LoaderCircle size={15} className="spin-icon"/><b>Jag arbetar med din uppgift</b></div><div className="work-steps">{workSteps.map((step,i)=><div className={i<phaseIndex?'work-step done':i===phaseIndex?'work-step current':'work-step'} key={step}>{i<phaseIndex?<CircleCheck size={14}/>:i===phaseIndex?<span className="step-pulse"/>:<span className="step-pending"/>}<span>{step}</span></div>)}</div><small>Det här visar arbetsstegen — jag visar inte privata interna tankar.</small></div></div>}
-     {result&&<div className="bot-message"><div className="message-avatar"><Bot size={16}/></div><div className="bubble assistant-bubble"><b>Klart! Jag har gjort arbetet.</b><p>Resultatet finns här nedanför. Du kan kopiera det eller be mig ändra något.</p></div></div>}
+     {result&&<div className="bot-message result-in-chat"><div className="message-avatar"><Bot size={16}/></div><div className="bubble assistant-bubble chat-result-bubble"><b>Här är arbetet</b><div className="chat-result-text">{result}</div></div></div>}
     </div>
     <div className="workbot-compose"><textarea className="task-input" value={task} onChange={e=>setTask(e.target.value)} placeholder="Beskriv vad du vill att jag ska skapa eller göra…"/><div className="compose-bottom"><label><input type="checkbox" checked={research} onChange={e=>setResearch(e.target.checked)}/><Globe size={15}/><span>Researcha på webben vid behov</span></label><button className="primary" onClick={()=>run(task)} disabled={!task.trim()||busy}>{busy?<><LoaderCircle size={15} className="spin-icon"/> Arbetar…</>:<><Send size={15}/> Starta arbetet</>}</button></div></div>
    </section>
