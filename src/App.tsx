@@ -44,9 +44,9 @@ export default function App(){
  const copy=async()=>{try{await navigator.clipboard.writeText(result);setMessage('Texten kopierades.');}catch{setMessage('Kunde inte kopiera automatiskt. Markera texten och kopiera.')}};
  return <div className="shell">
   <aside className={sidebarCollapsed?"sidebar collapsed":"sidebar"}><div className="brand"><div className="brandmark"><Brain size={21}/></div><div><b>think like me</b><small>din personliga AI-arbetsyta</small></div></div><div className="side-label">ARBETSYTA</div>
-   <button className={page==='create'?'nav active':'nav'} onClick={()=>setPage('create')}><WandSparkles size={18}/> Skapa med AI</button>
-   <button className={page==='notes'?'nav active':'nav'} onClick={()=>setPage('notes')}><BookOpen size={18}/> Mina anteckningar <span className="count">{notes.length}</span></button>
-   <button className={page==='profile'?'nav active':'nav'} onClick={()=>setPage('profile')}><UserRound size={18}/> Min skrivprofil</button>
+   <button className={page==='create'?'nav active':'nav'} title="New task" onClick={()=>{setPage('create');setTask('');setResult('');setSources([]);setError('');setMessage('')}}><WandSparkles size={18}/> Skapa med AI</button>
+   <button className={page==='notes'?'nav active':'nav'} title="My notes" onClick={()=>setPage('notes')}><BookOpen size={18}/> Mina anteckningar <span className="count">{notes.length}</span></button>
+   <button className={page==='profile'?'nav active':'nav'} title="Writing profile" onClick={()=>setPage('profile')}><UserRound size={18}/> Min skrivprofil</button>
    <div className="side-bottom"><div className="learning"><span className="pulse"/><div><b>Din stil utvecklas</b><small>Profilen sparas lokalt</small></div></div><small className="version">SKRIV- OCH SKOLARBETE · BETA</small></div>
   </aside>
   <main className="main"><header className="topbar"><div className="topbar-left"><button className="sidebar-toggle" onClick={()=>setSidebarCollapsed(v=>!v)} title={sidebarCollapsed?"Öppna sidofält":"Fäll ihop sidofält"} aria-label={sidebarCollapsed?"Öppna sidofält":"Fäll ihop sidofält"}>{sidebarCollapsed?<PanelLeftOpen size={18}/>:<PanelLeftClose size={18}/>}</button><div className="crumb">Workspace <span>/</span> {page==='create'?'Skapa med AI':page==='notes'?'Anteckningar':'Skrivprofil'}</div></div><div className="level"><span className="level-dot"/> Åk 7 · SVA <ChevronDown size={14}/></div></header>
