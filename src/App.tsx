@@ -1,9 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BookOpen, Brain, Check, ChevronDown, FileText, Globe, PenLine, Plus, Sparkles, Trash2, UserRound, WandSparkles, Copy, ArrowUpRight, RotateCcw, Bot, MessageCircle, Send, CircleCheck, LoaderCircle, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { BookOpen, Brain, Check, ChevronDown, FileText, Globe, PenLine, Plus, Sparkles, Trash2, UserRound, WandSparkles, Copy, ArrowUpRight, RotateCcw, Bot, MessageCircle, Send, CircleCheck, LoaderCircle, PanelLeftClose, PanelLeftOpen, CalendarClock, LibraryBig, Plug, Bookmark, Clock3, Play } from 'lucide-react';
 
 type Note={id:string,title:string,body:string};
 type Profile={likes:string[],avoid:string[],level:string};
 type Source={title:string,url:string};
+type LibraryItem={id:string,title:string,content:string,sources:Source[],createdAt:string};
+type ScheduleItem={id:string,title:string,instruction:string,when:string,repeat:'once'|'daily'|'weekly',completed?:boolean};
+type Plugin={id:string,name:string,description:string,prompt:string};
+const pluginCatalog:Plugin[]=[
+ {id:'citations',name:'Källassistent',description:'Hjälper till med källor och tydliga referenser när du gör research.',prompt:'When factual research is requested, clearly separate sourced facts from general explanation and include only verifiable source links.'},
+ {id:'outline',name:'Smart disposition',description:'Gör strukturen tydlig med rubriker och en logisk ordning.',prompt:'Use a clear, logical outline with useful headings when it improves the requested deliverable.'},
+ {id:'easy-swedish',name:'Enkel svenska',description:'Håller språket naturligt, tydligt och lätt att förstå.',prompt:'Use clear, natural Swedish with accessible vocabulary and explain necessary difficult words briefly.'},
+ {id:'study-cards',name:'Pluggkort',description:'Kan skapa frågor och svar för att repetera innehåll.',prompt:'When the task is to study or review, prefer useful question-and-answer flashcards and short recall questions.'},
+ {id:'presentation',name:'Presentationshjälp',description:'Hjälper till att skapa presentationer med slide-rubriker och talarstöd.',prompt:'When asked for a presentation, organize it slide-by-slide with concise slide text and optional speaker notes.'}
+];
 const initialProfile:Profile={likes:['enkla och naturliga ord','korta meningar','behålla min egen röst'],avoid:['för professionellt språk','onödigt svåra ord'],level:'Årskurs 7 · Svenska som andraspråk'};
 const read=<T,>(key:string,fallback:T):T=>{try{const v=localStorage.getItem(key);return v?JSON.parse(v) as T:fallback}catch{return fallback}};
 const store=(key:string,value:unknown)=>localStorage.setItem(key,JSON.stringify(value));
@@ -18,7 +28,7 @@ async function createWithAI(task:string,notes:string,current:string,research:boo
 }
 export default function App(){
  const chatEndRef=useRef<HTMLDivElement|null>(null);
- const [page,setPage]=useState<'create'|'notes'|'profile'>('create');
+ const [page,setPage]=useState<'create'|'notes'|'profile'|'library'|'scheduler'|'plugins'>('create');
  const [sidebarCollapsed,setSidebarCollapsed]=useState(false);
  const [task,setTask]=useState('');
  const [followup,setFollowup]=useState('');
@@ -27,21 +37,33 @@ export default function App(){
  const [researched,setResearched]=useState(false);
  const [provider,setProvider]=useState('');
  const [notes,setNotes]=useState<Note[]>(()=>read('tlm-notes',[]));
+ const [library,setLibrary]=useState<LibraryItem[]>(()=>read('tlm-library',[]));
+ const [schedules,setSchedules]=useState<ScheduleItem[]>(()=>read('tlm-schedules',[]));
+ const [installedPlugins,setInstalledPlugins]=useState<string[]>(()=>read('tlm-plugins',[]));
+ const [scheduleTitle,setScheduleTitle]=useState('');
+ const [scheduleInstruction,setScheduleInstruction]=useState('');
+ const [scheduleWhen,setScheduleWhen]=useState(()=>{const d=new Date(Date.now()+3600000);d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,16)});
+ const [scheduleRepeat,setScheduleRepeat]=useState<'once'|'daily'|'weekly'>('once');
  const [profile,setProfile]=useState<Profile>(()=>read('tlm-profile',initialProfile));
  const [selected,setSelected]=useState<string[]>([]);
  const [noteTitle,setNoteTitle]=useState('');const [noteBody,setNoteBody]=useState('');
  const [research,setResearch]=useState(true);
  const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [message,setMessage]=useState('');const [phaseIndex,setPhaseIndex]=useState(0);const [elapsedSeconds,setElapsedSeconds]=useState(0);const workSteps=research?['Jag läser instruktionen och bryter ner uppgiften.','Jag går igenom dina valda anteckningar och skrivprofil.','Jag undersöker relevanta fakta och källor vid behov.','Jag skriver ihop hela arbetet och kontrollerar att det följer instruktionen.']:['Jag läser instruktionen och bryter ner uppgiften.','Jag går igenom dina valda anteckningar och skrivprofil.','Jag skriver ihop hela arbetet.','Jag gör en sista kontroll av texten.'];
- useEffect(()=>store('tlm-notes',notes),[notes]);useEffect(()=>store('tlm-profile',profile),[profile]);useEffect(()=>{if(!busy)return;const timer=window.setInterval(()=>setElapsedSeconds(s=>s+1),1000);return()=>window.clearInterval(timer)},[busy]);
+ useEffect(()=>store('tlm-notes',notes),[notes]);useEffect(()=>store('tlm-profile',profile),[profile]);useEffect(()=>store('tlm-library',library),[library]);useEffect(()=>store('tlm-schedules',schedules),[schedules]);useEffect(()=>store('tlm-plugins',installedPlugins),[installedPlugins]);useEffect(()=>{if(!busy)return;const timer=window.setInterval(()=>setElapsedSeconds(s=>s+1),1000);return()=>window.clearInterval(timer)},[busy]);
  useEffect(()=>{if(busy||result)chatEndRef.current?.scrollIntoView({behavior:'smooth',block:'end'});},[busy,result]);
  const context=useMemo(()=>notes.filter(n=>selected.includes(n.id)).map(n=>n.title+': '+n.body).join('\n\n'),[notes,selected]);
- const profileContext='WRITING PROFILE: '+profile.level+'. Preferences: '+profile.likes.join(', ')+'. Avoid: '+profile.avoid.join(', ')+'.';
+ const profileContext='WRITING PROFILE: '+profile.level+'. Preferences: '+profile.likes.join(', ')+'. Avoid: '+profile.avoid.join(', ')+'.\\nINSTALLED WORKSPACE PLUGINS: '+pluginCatalog.filter(p=>installedPlugins.includes(p.id)).map(p=>p.name+': '+p.prompt).join('\\n');
  const run=async(instruction:string,continuing=false)=>{
   if(!instruction.trim()||busy)return;setBusy(true);setPhaseIndex(0);setError('');setMessage('');setElapsedSeconds(0);if(!continuing){setResult('');setSources([]);setResearched(false);}
   try{const answer=await createWithAI(instruction,[context,profileContext].filter(Boolean).join('\n\n'),continuing?result:'',research);setResult(answer.text);setSources(answer.sources);setResearched(answer.researched);setProvider(answer.provider);setPhaseIndex(workSteps.length-1);setFollowup('');}
   catch(e){const msg=e instanceof Error?e.message:'Något gick fel. Försök igen.';setError(/timeout|timed out|signal timed out|abort/i.test(msg)?'AI:n nådde sin maximala väntetid. Din instruktion finns kvar — försök igen. Du behöver inte stänga av research.':msg);}
   finally{setBusy(false);}
  };
+ const saveResult=()=>{if(!result.trim())return;const item:LibraryItem={id:crypto.randomUUID(),title:(task.trim()||'AI-arbete').slice(0,90),content:result,sources,createdAt:new Date().toISOString()};setLibrary(items=>[item,...items]);setMessage('Sparades i biblioteket.');};
+ const addSchedule=()=>{if(!scheduleTitle.trim()||!scheduleInstruction.trim()||!scheduleWhen)return;setSchedules(items=>[{id:crypto.randomUUID(),title:scheduleTitle.trim(),instruction:scheduleInstruction.trim(),when:new Date(scheduleWhen).toISOString(),repeat:scheduleRepeat},...items]);setScheduleTitle('');setScheduleInstruction('');setMessage('Schemat sparades.');};
+ const openLibraryItem=(item:LibraryItem)=>{setTask(item.title);setResult(item.content);setSources(item.sources||[]);setPage('create');setError('');setMessage('Öppnade från biblioteket.');};
+ const togglePlugin=(id:string)=>setInstalledPlugins(items=>items.includes(id)?items.filter(x=>x!==id):[...items,id]);
+ useEffect(()=>{const check=()=>{if(busy)return;const due=schedules.find(s=>!s.completed&&new Date(s.when).getTime()<=Date.now());if(!due)return;setSchedules(items=>items.map(s=>{if(s.id!==due.id)return s;if(s.repeat==='once')return {...s,completed:true};const next=new Date(s.when);while(next.getTime()<=Date.now())next.setDate(next.getDate()+(s.repeat==='daily'?1:7));return {...s,when:next.toISOString()};}));setTask(due.instruction);setPage('create');setMessage('Schemalagd uppgift startade: '+due.title);void run(due.instruction,false);if(typeof Notification!=='undefined'&&Notification.permission==='granted')new Notification('Think Like Me',{body:'Startar schemalagd uppgift: '+due.title});};const timer=window.setInterval(check,20000);check();return()=>window.clearInterval(timer);},[schedules,busy]);
  const addNote=()=>{if(!noteTitle.trim()||!noteBody.trim())return;setNotes([{id:crypto.randomUUID(),title:noteTitle.trim(),body:noteBody.trim()},...notes]);setNoteTitle('');setNoteBody('');setMessage('Anteckningen sparades.');};
  const copy=async()=>{try{await navigator.clipboard.writeText(result);setMessage('Texten kopierades.');}catch{setMessage('Kunde inte kopiera automatiskt. Markera texten och kopiera.')}};
  return <div className="shell">
