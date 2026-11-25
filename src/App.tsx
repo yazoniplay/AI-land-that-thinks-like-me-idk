@@ -37,7 +37,7 @@ export default function App(){
  const run=async(instruction:string,continuing=false)=>{
   if(!instruction.trim()||busy)return;setBusy(true);setPhaseIndex(0);setError('');setMessage('');setElapsedSeconds(0);if(!continuing){setResult('');setSources([]);setResearched(false);}
   try{const answer=await createWithAI(instruction,[context,profileContext].filter(Boolean).join('\n\n'),continuing?result:'',research);setResult(answer.text);setSources(answer.sources);setResearched(answer.researched);setProvider(answer.provider);setPhaseIndex(workSteps.length-1);setFollowup('');}
-  catch(e){const msg=e instanceof Error?e.message:'Något gick fel. Försök igen.';setError(/timeout|timed out|signal timed out|abort/i.test(msg)?'AI:n tog längre tid än väntat och avbröt försöket. Prova igen eller stäng av webbresearch för ett snabbare utkast.':msg);}
+  catch(e){const msg=e instanceof Error?e.message:'Något gick fel. Försök igen.';setError(/timeout|timed out|signal timed out|abort/i.test(msg)?'AI:n nådde sin maximala väntetid. Din instruktion finns kvar — försök igen. Du behöver inte stänga av research.':msg);}
   finally{setBusy(false);}
  };
  const addNote=()=>{if(!noteTitle.trim()||!noteBody.trim())return;setNotes([{id:crypto.randomUUID(),title:noteTitle.trim(),body:noteBody.trim()},...notes]);setNoteTitle('');setNoteBody('');setMessage('Anteckningen sparades.');};
