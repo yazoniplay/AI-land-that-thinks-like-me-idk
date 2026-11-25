@@ -26,6 +26,7 @@ async function createWithAI(task:string,notes:string,current:string,research:boo
  const data=await response.json().catch(()=>({error:'AI:n skickade ett svar som inte gick att läsa.'}));
  if(!response.ok)throw new Error(data.error||'AI:n kunde inte skapa texten just nu.');
  if(typeof data.text!=='string'||!data.text.trim())throw new Error('AI:n returnerade ingen text.');
+ if(research&&(data.researched!==true||!Array.isArray(data.sources)||data.sources.length===0||!data.researchProviders||Number(data.researchProviders.tavily)<1||Number(data.researchProviders.exa)<1))throw new Error('Research är på, men både Tavily och Exa måste ha sökt och returnerat källor. Ingen text visas som researchad förrän båda är klara.');
  return {text:data.text,feedback:Array.isArray(data.feedback)?data.feedback as string[]:[],sources:Array.isArray(data.sources)?data.sources as Source[]:[],researched:Boolean(data.researched),provider:String(data.provider||'AI')};
 }
 export default function App(){
