@@ -37,3 +37,7 @@ After setting both secrets, test the writing assistant in the deployed app.
 
 ## Storage
 Notes and writing preferences currently stay in this browser's localStorage. They are not synced between devices.
+
+
+## GitHub Pages deployment
+The site is built with Vite and deployed from the `dist` folder by the GitHub Actions Pages workflow on pushes to `main`.
