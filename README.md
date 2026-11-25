@@ -23,7 +23,7 @@ The Supabase management connector cannot set Edge Function secrets, so finish th
 - In SnapStudy project Edge Function secrets, set `WRITING_BRIDGE_SECRET`.
 - In Think Like Me project Edge Function secrets, set `SNAPSTUDY_WRITING_BRIDGE_SECRET`.
 
-SnapStudy's bridge reads the provider secrets already configured in that project (Gemini and/or Groq). No provider key needs to be copied to Think Like Me. Do not put the shared bridge secret or provider keys in frontend code, GitHub, or chat.
+SnapStudy's bridge reads the existing provider secrets already configured in that project (Gemini first, then its configured OpenAI-compatible fallbacks, including AI Horde when available). No provider key needs to be copied to Think Like Me. The writing proxy also has a database-backed limit of 15 requests per IP per hour; it stores only a hashed IP identifier and the rate-limit table has RLS enabled. Do not put the shared bridge secret or provider keys in frontend code, GitHub, or chat.
 
 Dashboard links:
 - [Think Like Me Edge Function secrets](https://supabase.com/dashboard/project/ihonwomrhvdgfmjjjtyr/settings/functions)
