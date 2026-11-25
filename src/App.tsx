@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { BookOpen, Brain, Check, ChevronDown, FileText, Globe, PenLine, Plus, Sparkles, Trash2, UserRound, WandSparkles, Copy, ArrowUpRight, RotateCcw, Bot, MessageCircle, Send, CircleCheck, LoaderCircle, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
 type Note={id:string,title:string,body:string};
@@ -17,6 +17,7 @@ async function createWithAI(task:string,notes:string,current:string,research:boo
  return {text:data.text,feedback:Array.isArray(data.feedback)?data.feedback as string[]:[],sources:Array.isArray(data.sources)?data.sources as Source[]:[],researched:Boolean(data.researched),provider:String(data.provider||'AI')};
 }
 export default function App(){
+ const chatEndRef=useRef<HTMLDivElement|null>(null);
  const [page,setPage]=useState<'create'|'notes'|'profile'>('create');
  const [sidebarCollapsed,setSidebarCollapsed]=useState(false);
  const [task,setTask]=useState('');
@@ -32,6 +33,7 @@ export default function App(){
  const [research,setResearch]=useState(true);
  const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [message,setMessage]=useState('');const [phaseIndex,setPhaseIndex]=useState(0);const [elapsedSeconds,setElapsedSeconds]=useState(0);const workSteps=research?['Jag läser instruktionen och bryter ner uppgiften.','Jag går igenom dina valda anteckningar och skrivprofil.','Jag undersöker relevanta fakta och källor vid behov.','Jag skriver ihop hela arbetet och kontrollerar att det följer instruktionen.']:['Jag läser instruktionen och bryter ner uppgiften.','Jag går igenom dina valda anteckningar och skrivprofil.','Jag skriver ihop hela arbetet.','Jag gör en sista kontroll av texten.'];
  useEffect(()=>store('tlm-notes',notes),[notes]);useEffect(()=>store('tlm-profile',profile),[profile]);useEffect(()=>{if(!busy)return;const timer=window.setInterval(()=>setElapsedSeconds(s=>s+1),1000);return()=>window.clearInterval(timer)},[busy]);
+ useEffect(()=>{if(busy||result)chatEndRef.current?.scrollIntoView({behavior:'smooth',block:'end'});},[busy,result]);
  const context=useMemo(()=>notes.filter(n=>selected.includes(n.id)).map(n=>n.title+': '+n.body).join('\n\n'),[notes,selected]);
  const profileContext='WRITING PROFILE: '+profile.level+'. Preferences: '+profile.likes.join(', ')+'. Avoid: '+profile.avoid.join(', ')+'.';
  const run=async(instruction:string,continuing=false)=>{
