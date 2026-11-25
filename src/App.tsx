@@ -37,7 +37,7 @@ export default function App(){
   if(kind==='bad'||kind==='natural') {if(!next.avoid.includes(avoid))next.avoid.unshift(avoid)} else if(!next.likes.includes(like))next.likes.unshift(like);
   setProfile(next);setFeedback('Jag har uppdaterat din skrivprofil.');setTimeout(()=>setFeedback(''),2400);
  };
- const generate=async()=>{setIsGenerating(true);setResult('');setAiFeedback([]);setFeedback('');try{const answer=await requestWritingAI(draft,context,'revise');setResult(answer.text);setAiFeedback(answer.feedback);}catch(error){setFeedback(error instanceof Error?error.message:'AI:n kunde inte svara.');}finally{setIsGenerating(false);}};
+ const generate=async()=>{setIsGenerating(true);setResult('');setAiFeedback([]);setFeedback('');try{const profileContext='WRITING PROFILE: Keep the style at '+profile.level+'. Preferences: '+profile.likes.join(', ')+'. Avoid: '+profile.avoid.join(', ')+'.';const answer=await requestWritingAI(draft,[context,profileContext].filter(Boolean).join('\n\n'),'revise');setResult(answer.text);setAiFeedback(answer.feedback);}catch(error){setFeedback(error instanceof Error?error.message:'AI:n kunde inte svara.');}finally{setIsGenerating(false);}};
  const addNote=()=>{if(!noteTitle.trim()||!noteBody.trim())return;setNotes([{id:crypto.randomUUID(),title:noteTitle.trim(),body:noteBody.trim()},...notes]);setNoteTitle('');setNoteBody('');};
  return <div className="shell">
   <aside className="sidebar"><div className="brand"><div className="brandmark"><Brain size={21}/></div><div><b>think like me</b><small>din personliga AI</small></div></div>
