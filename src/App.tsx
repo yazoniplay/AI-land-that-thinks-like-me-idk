@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BookOpen, Brain, Check, ChevronDown, FileText, Globe, PenLine, Plus, Sparkles, Trash2, UserRound, WandSparkles, Copy, ArrowUpRight, RotateCcw, Bot, MessageCircle, Send, CircleCheck, LoaderCircle } from 'lucide-react';
+import { BookOpen, Brain, Check, ChevronDown, FileText, Globe, PenLine, Plus, Sparkles, Trash2, UserRound, WandSparkles, Copy, ArrowUpRight, RotateCcw, Bot, MessageCircle, Send, CircleCheck, LoaderCircle, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
 type Note={id:string,title:string,body:string};
 type Profile={likes:string[],avoid:string[],level:string};
@@ -18,6 +18,7 @@ async function createWithAI(task:string,notes:string,current:string,research:boo
 }
 export default function App(){
  const [page,setPage]=useState<'create'|'notes'|'profile'>('create');
+ const [sidebarCollapsed,setSidebarCollapsed]=useState(false);
  const [task,setTask]=useState('');
  const [followup,setFollowup]=useState('');
  const [result,setResult]=useState('');
@@ -42,13 +43,13 @@ export default function App(){
  const addNote=()=>{if(!noteTitle.trim()||!noteBody.trim())return;setNotes([{id:crypto.randomUUID(),title:noteTitle.trim(),body:noteBody.trim()},...notes]);setNoteTitle('');setNoteBody('');setMessage('Anteckningen sparades.');};
  const copy=async()=>{try{await navigator.clipboard.writeText(result);setMessage('Texten kopierades.');}catch{setMessage('Kunde inte kopiera automatiskt. Markera texten och kopiera.')}};
  return <div className="shell">
-  <aside className="sidebar"><div className="brand"><div className="brandmark"><Brain size={21}/></div><div><b>think like me</b><small>din personliga AI-arbetsyta</small></div></div><div className="side-label">ARBETSYTA</div>
+  <aside className={sidebarCollapsed?"sidebar collapsed":"sidebar"}><div className="brand"><div className="brandmark"><Brain size={21}/></div><div><b>think like me</b><small>din personliga AI-arbetsyta</small></div></div><div className="side-label">ARBETSYTA</div>
    <button className={page==='create'?'nav active':'nav'} onClick={()=>setPage('create')}><WandSparkles size={18}/> Skapa med AI</button>
    <button className={page==='notes'?'nav active':'nav'} onClick={()=>setPage('notes')}><BookOpen size={18}/> Mina anteckningar <span className="count">{notes.length}</span></button>
    <button className={page==='profile'?'nav active':'nav'} onClick={()=>setPage('profile')}><UserRound size={18}/> Min skrivprofil</button>
    <div className="side-bottom"><div className="learning"><span className="pulse"/><div><b>Din stil utvecklas</b><small>Profilen sparas lokalt</small></div></div><small className="version">SKRIV- OCH SKOLARBETE · BETA</small></div>
   </aside>
-  <main className="main"><header className="topbar"><div className="crumb">Workspace <span>/</span> {page==='create'?'Skapa med AI':page==='notes'?'Anteckningar':'Skrivprofil'}</div><div className="level"><span className="level-dot"/> Åk 7 · SVA <ChevronDown size={14}/></div></header>
+  <main className="main"><header className="topbar"><div className="topbar-left"><button className="sidebar-toggle" onClick={()=>setSidebarCollapsed(v=>!v)} title={sidebarCollapsed?"Öppna sidofält":"Fäll ihop sidofält"} aria-label={sidebarCollapsed?"Öppna sidofält":"Fäll ihop sidofält"}>{sidebarCollapsed?<PanelLeftOpen size={18}/>:<PanelLeftClose size={18}/>}</button><div className="crumb">Workspace <span>/</span> {page==='create'?'Skapa med AI':page==='notes'?'Anteckningar':'Skrivprofil'}</div></div><div className="level"><span className="level-dot"/> Åk 7 · SVA <ChevronDown size={14}/></div></header>
   {page==='create'&&<section className="content">
    <div className="heading"><div><div className="eyebrow"><Sparkles size={14}/> DIN AI-ARBETSKOMPIS</div><h1>Vad ska vi <em>få gjort?</em></h1><p>Ge Think Like Me en uppgift. Den planerar, researchar och gör klart arbetet.</p></div><div className="avatar"><Bot size={22}/></div></div>
    <section className="workbot panel">
