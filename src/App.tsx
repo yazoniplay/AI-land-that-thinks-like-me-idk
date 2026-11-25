@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BookOpen, Brain, Check, ChevronDown, FileText, Globe, PenLine, Plus, Sparkles, Trash2, UserRound, WandSparkles, Copy, ArrowUpRight, RotateCcw } from 'lucide-react';
+import { BookOpen, Brain, Check, ChevronDown, FileText, Globe, PenLine, Plus, Sparkles, Trash2, UserRound, WandSparkles, Copy, ArrowUpRight, RotateCcw, Bot, MessageCircle, Send, CircleCheck, LoaderCircle } from 'lucide-react';
 
 type Note={id:string,title:string,body:string};
 type Profile={likes:string[],avoid:string[],level:string};
@@ -10,7 +10,7 @@ const store=(key:string,value:unknown)=>localStorage.setItem(key,JSON.stringify(
 const URL='https://ihonwomrhvdgfmjjjtyr.supabase.co';
 const KEY='sb_publishable_gl2xI-N4Ea8hkJOkInwPsA_iw2RC-ja';
 async function createWithAI(task:string,notes:string,current:string,research:boolean){
- const response=await fetch(URL+'/functions/v1/writing-assistant',{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY},body:JSON.stringify({mode:'create',task,notes,draft:current,language:'Swedish (Svenska)',research})});
+ const response=await fetch(URL+'/functions/v1/writing-assistant',{method:'POST',headers:{'Content-Type':'application/json','apikey':KEY},body:JSON.stringify({mode:'create',task,notes,draft:current,language:'Swedish (Svenska)',research}),signal:AbortSignal.timeout(145000)});
  const data=await response.json().catch(()=>({error:'AI:n skickade ett svar som inte gick att läsa.'}));
  if(!response.ok)throw new Error(data.error||'AI:n kunde inte skapa texten just nu.');
  if(typeof data.text!=='string'||!data.text.trim())throw new Error('AI:n returnerade ingen text.');
@@ -29,13 +29,13 @@ export default function App(){
  const [selected,setSelected]=useState<string[]>([]);
  const [noteTitle,setNoteTitle]=useState('');const [noteBody,setNoteBody]=useState('');
  const [research,setResearch]=useState(true);
- const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [message,setMessage]=useState('');
- useEffect(()=>store('tlm-notes',notes),[notes]);useEffect(()=>store('tlm-profile',profile),[profile]);
+ const [busy,setBusy]=useState(false);const [error,setError]=useState('');const [message,setMessage]=useState('');const [phaseIndex,setPhaseIndex]=useState(0);const workSteps=research?['Jag läser instruktionen och bryter ner uppgiften.','Jag går igenom dina valda anteckningar och skrivprofil.','Jag undersöker relevanta fakta och källor vid behov.','Jag skriver ihop hela arbetet och kontrollerar att det följer instruktionen.']:['Jag läser instruktionen och bryter ner uppgiften.','Jag går igenom dina valda anteckningar och skrivprofil.','Jag skriver ihop hela arbetet.','Jag gör en sista kontroll av texten.'];
+ useEffect(()=>store('tlm-notes',notes),[notes]);useEffect(()=>store('tlm-profile',profile),[profile]);useEffect(()=>{if(!busy)return;const timer=window.setInterval(()=>setPhaseIndex(i=>Math.min(i+1,workSteps.length-1)),9000);return()=>window.clearInterval(timer)},[busy,workSteps.length]);
  const context=useMemo(()=>notes.filter(n=>selected.includes(n.id)).map(n=>n.title+': '+n.body).join('\n\n'),[notes,selected]);
  const profileContext='WRITING PROFILE: '+profile.level+'. Preferences: '+profile.likes.join(', ')+'. Avoid: '+profile.avoid.join(', ')+'.';
  const run=async(instruction:string,continuing=false)=>{
-  if(!instruction.trim()||busy)return;setBusy(true);setError('');setMessage('');
-  try{const answer=await createWithAI(instruction,[context,profileContext].filter(Boolean).join('\n\n'),continuing?result:'',research);setResult(answer.text);setSources(answer.sources);setResearched(answer.researched);setProvider(answer.provider);setFollowup('');}
+  if(!instruction.trim()||busy)return;setBusy(true);setPhaseIndex(0);setError('');setMessage('');
+  try{const answer=await createWithAI(instruction,[context,profileContext].filter(Boolean).join('\n\n'),continuing?result:'',research);setResult(answer.text);setSources(answer.sources);setResearched(answer.researched);setProvider(answer.provider);setPhaseIndex(workSteps.length-1);setFollowup('');}
   catch(e){setError(e instanceof Error?e.message:'Något gick fel. Försök igen.');}
   finally{setBusy(false);}
  };
@@ -50,11 +50,16 @@ export default function App(){
   </aside>
   <main className="main"><header className="topbar"><div className="crumb">Workspace <span>/</span> {page==='create'?'Skapa med AI':page==='notes'?'Anteckningar':'Skrivprofil'}</div><div className="level"><span className="level-dot"/> Åk 7 · SVA <ChevronDown size={14}/></div></header>
   {page==='create'&&<section className="content">
-   <div className="heading"><div><div className="eyebrow"><Sparkles size={14}/> GE EN INSTRUKTION · FÅ HELA RESULTATET</div><h1>Vad ska vi <em>skapa?</em></h1><p>Berätta vad du behöver. Jag gör hela första versionen åt dig.</p></div><div className="avatar"><Brain size={22}/></div></div>
-   <div className="notice"><Sparkles size={16}/><span><b>En instruktion räcker.</b> Uppsats, presentation, tal, sammanfattning, plan eller något annat — beskriv bara vad du vill ha.</span></div>
-   <section className="panel task-panel"><div className="panel-head"><div><span className="step">01</span><b>Din instruktion</b></div><button className="quiet" onClick={()=>{setTask('');setResult('');setSources([]);setError('')}}>Rensa</button></div>
-    <textarea className="task-input" value={task} onChange={e=>setTask(e.target.value)} placeholder={'Exempel: Gör en presentation på 5 slides om Steve i Minecraft. Skriv på enkel svenska för årskurs 7 SVA. Ha rubriker, korta punkter och ett manus jag kan säga. Använd fakta och källor om det behövs.'}/>
-    <div className="research-toggle"><label><input type="checkbox" checked={research} onChange={e=>setResearch(e.target.checked)}/><Globe size={16}/><span><b>Researcha på webben vid behov</b><small>AI:n söker fakta när den behöver det och visar källor.</small></span></label><button className="primary" onClick={()=>run(task)} disabled={!task.trim()||busy}><WandSparkles size={16}/>{busy?'Skapar hela arbetet…':'Skapa hela arbetet'} <span>→</span></button></div>
+   <div className="heading"><div><div className="eyebrow"><Sparkles size={14}/> DIN AI-ARBETSKOMPIS</div><h1>Vad ska vi <em>få gjort?</em></h1><p>Ge Think Like Me en uppgift. Den planerar, researchar och gör klart arbetet.</p></div><div className="avatar"><Bot size={22}/></div></div>
+   <section className="workbot panel">
+    <div className="workbot-head"><div className="workbot-avatar"><Bot size={20}/></div><div className="workbot-name"><b>Think Like Me</b><small>AI-arbetsbot · gör saker åt dig</small></div><span className={busy?'workbot-status active':'workbot-status'}><span className="status-dot"/>{busy?'Arbetar':'Redo'}</span></div>
+    <div className="workbot-chat">
+     <div className="bot-message"><div className="message-avatar"><Bot size={16}/></div><div className="bubble assistant-bubble"><b>Hej! Vad ska jag hjälpa dig att få gjort?</b><p>Skriv bara uppgiften med dina egna ord. Jag kan skapa hela arbetet och söka fakta när det behövs.</p></div></div>
+     {task.trim()&&<div className="bot-message user-message"><div className="bubble user-bubble"><span>Din uppgift</span><p>{task}</p></div></div>}
+     {busy&&<div className="bot-message"><div className="message-avatar"><Bot size={16}/></div><div className="bubble assistant-bubble working-bubble"><div className="working-title"><LoaderCircle size={15} className="spin-icon"/><b>Jag arbetar med din uppgift</b></div><div className="work-steps">{workSteps.map((step,i)=><div className={i<phaseIndex?'work-step done':i===phaseIndex?'work-step current':'work-step'} key={step}>{i<phaseIndex?<CircleCheck size={14}/>:i===phaseIndex?<span className="step-pulse"/>:<span className="step-pending"/>}<span>{step}</span></div>)}</div><small>Det här visar arbetsstegen — jag visar inte privata interna tankar.</small></div></div>}
+     {result&&<div className="bot-message"><div className="message-avatar"><Bot size={16}/></div><div className="bubble assistant-bubble"><b>Klart! Jag har gjort arbetet.</b><p>Resultatet finns här nedanför. Du kan kopiera det eller be mig ändra något.</p></div></div>}
+    </div>
+    <div className="workbot-compose"><textarea className="task-input" value={task} onChange={e=>setTask(e.target.value)} placeholder="Beskriv vad du vill att jag ska skapa eller göra…"/><div className="compose-bottom"><label><input type="checkbox" checked={research} onChange={e=>setResearch(e.target.checked)}/><Globe size={15}/><span>Researcha på webben vid behov</span></label><button className="primary" onClick={()=>run(task)} disabled={!task.trim()||busy}>{busy?<><LoaderCircle size={15} className="spin-icon"/> Arbetar…</>:<><Send size={15}/> Starta arbetet</>}</button></div></div>
    </section>
    <section className="context-panel"><div className="context-title"><div><BookOpen size={17}/><b>Använd mina anteckningar</b></div><button className="link" onClick={()=>setPage('notes')}>Hantera →</button></div><p>Valda anteckningar används som material till uppgiften.</p><div className="note-chips">{notes.length?notes.map(n=><button key={n.id} className={selected.includes(n.id)?'chip selected':'chip'} onClick={()=>setSelected(s=>s.includes(n.id)?s.filter(x=>x!==n.id):[...s,n.id])}>{selected.includes(n.id)&&<Check size={13}/>} {n.title}</button>):<span className="muted">Lägg till anteckningar om du vill att AI:n ska använda dem.</span>}</div>{context&&<div className="context-preview">Valt material: {context.slice(0,220)}{context.length>220?'…':''}</div>}</section>
    {error&&<div className="error-box">{error}</div>}
