@@ -57,7 +57,7 @@ export default function App(){
  useEffect(()=>{if(busy||result)chatEndRef.current?.scrollIntoView({behavior:'smooth',block:'end'});},[busy,result]);
  const activeThread=chatHistory.find(chat=>chat.id===activeChatId)||null;
  const context=useMemo(()=>notes.filter(n=>selected.includes(n.id)).map(n=>n.title+': '+n.body).join('\n\n'),[notes,selected]);
- const profileContext='WRITING PROFILE: '+profile.level+'. Preferences: '+profile.likes.join(', ')+'. Avoid: '+profile.avoid.join(', ')+'.\nINSTALLED WORKSPACE PLUGINS: '+pluginCatalog.filter(p=>installedPlugins.includes(p.id)).map(p=>p.name+': '+p.prompt).join('\n');
+ const profileContext='TASK QUALITY RULES: For real books and school assignments, never invent plot details, characters, quotes, settings, or endings from a title. Use supplied notes and verified research; if facts are missing, ask for the book summary or cover text instead of guessing. For Grade 7 SVA oral presentations, write natural spoken Swedish, not a formal essay. Do not invent the student’s opinions, memories, or experiences. Keep character names exact.\\nWRITING PROFILE: '+profile.level+'. Preferences: '+profile.likes.join(', ')+'. Avoid: '+profile.avoid.join(', ')+'.\nINSTALLED WORKSPACE PLUGINS: '+pluginCatalog.filter(p=>installedPlugins.includes(p.id)).map(p=>p.name+': '+p.prompt).join('\n');
  const run=async(instruction:string,continuing=false)=>{
   if(!instruction.trim()||busy)return;
   const chatId=continuing&&activeChatId?activeChatId:crypto.randomUUID();
